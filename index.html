@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizza Maker Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: #fffbe9;
+            font-family: 'Montserrat', 'Arial Black', Arial, sans-serif;
+            font-weight: 900;
+            color: #1a1a1a;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        #branding {
+            width: 100%;
+            text-align: center;
+            margin-top: 12px;
+            margin-bottom: 0;
+            background-color: #fff;
+            padding: 5px 0;
+        }
+        #pizzaHutLogo {
+            height: 54px;
+            object-fit: contain;
+        }
+        #scoreboard {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 36px;
+            background: #fff;
+            border-bottom: 3px solid #d32f2f;
+            padding: 12px 0 8px 0;
+            font-size: 1.1em;
+            font-weight: 900;
+            letter-spacing: -1px;
+        }
+        .score-section {
+            padding: 0 14px;
+            border-right: 2px solid #eee;
+        }
+        .score-section:last-child {
+            border-right: none;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 94px);
+            overflow: hidden;
+            background-color: #fffbe9;
+        }
+        #analogClock {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            width: 90px;
+            height: 90px;
+            background: #fff;
+            border-radius: 50%;
+            border: 4px solid #d32f2f;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            z-index: 100;
+        }
+        #ordersList {
+            position: absolute;
+            top: 30px;
+            left: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 10;
+        }
+        .order {
+            background: #fff;
+            border: 2px solid #388e3c;
+            border-radius: 12px;
+            padding: 10px 18px;
+            font-size: 1em;
+            color: #222;
+            min-width: 120px;
+            text-align: left;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .ingredient {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            border: 2px solid #d32f2f;
+            z-index: 5;
+        }
+        .ingredient img {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            background: transparent;
+        }
+        #chef {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: auto;
+            z-index: 100;
+            pointer-events: none;
+            object-fit: contain;
+            background: transparent;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            bottom: 20px;
+            top: auto;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        @keyframes chef-active {
+            0% { transform: scale(1) rotate(-1deg); }
+            50% { transform: scale(1.04) rotate(1deg); }
+            100% { transform: scale(1) rotate(-1deg); }
+        }
+        .chef-cooking {
+            animation: chef-active 1.2s infinite alternate ease-in-out;
+        }
+        @keyframes chef-catch {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+        .chef-catch {
+            animation: chef-catch 0.4s ease-out;
+        }
+        .chef-visible {
+            opacity: 1 !important;
+        }
+        #celebration {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255,250,240,0.9);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        #confettiCanvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 10000;
+        }
+        #boxContainer {
+            width: 320px;
+            height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px auto;
+            position: relative;
+            z-index: 10000;
+        }
+        #pizzaBoxFallback {
+            width: 280px;
+            height: auto;
+            animation: pizza-zoom 1s cubic-bezier(.68,-0.55,.27,1.55);
+            filter: drop-shadow(8px 8px 10px rgba(0,0,0,0.25));
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            object-fit: contain;
+        }
+        @keyframes pizza-zoom {
+            0% { transform: scale(0.2) rotate(-10deg); opacity: 0; }
+            60% { transform: scale(1.2) rotate(5deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        #satisfactionMeter {
+            width: 320px;
+            height: 28px;
+            background: #eee;
+            border-radius: 16px;
+            margin: 24px auto 0 auto;
+            overflow: hidden;
+            border: 2px solid #388e3c;
+        }
+        #satisfactionFill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, gold, #ffd700, #ffecb3);
+            border-radius: 16px;
+            transition: width 1.2s cubic-bezier(.68,-0.55,.27,1.55);
+        }
+        #customerAppreciation {
+            font-size: 2em;
+            color: #d32f2f;
+            margin-top: 18px;
+            font-family: 'Montserrat', 'Arial Black', Arial, sans-serif;
+        }
+        .button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #DA291C;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-family: 'Montserrat', 'Arial Black', Arial, sans-serif;
+            font-weight: 900;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+        }
+        .button:hover {
+            background-color: #F5B800;
+            color: #000;
+        }
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255,255,255,0.9);
+            z-index: 950;
+        }
+        #gameOverScreen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,240,240,0.95);
+            z-index: 950;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        #finalScore, #finalPizzas {
+            font-size: 1.8em;
+            margin: 10px 0;
+            color: #222;
+        }
+        #newHighScoreMessage {
+            color: #DA291C;
+            font-size: 2em;
+            margin: 15px 0;
+            text-shadow: 2px 2px 0px #F5B800;
+            transform: rotate(-5deg);
+            display: none;
+        }
+        h1 {
+            color: #DA291C;
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #F5B800;
+        }
+        p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        /* Add a helper style to debug image boundaries */
+        .debug-outline {
+            outline: 2px solid red !important;
+        }
+        .sound-test-container {
+            display: none;
+        }
+        .sound-test {
+            display: none;
+        }
+        /* Rename boxContainer to pizzaContainer to match content */
+        #boxContainer {
+            width: 320px;
+            height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px auto;
+            position: relative;
+            z-index: 10000;
+        }
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            #scoreboard {
+                gap: 16px !important;
+                font-size: 0.8em !important;
+                flex-wrap: wrap;
+                padding: 8px 0 !important;
+            }
+            .score-section {
+                padding: 0 8px !important;
+            }
+            h1 {
+                font-size: 2em !important;
+            }
+            #pizzaHutLogo {
+                height: 40px !important;
+            }
+            #analogClock {
+                top: 10px !important;
+                right: 10px !important;
+                width: 70px !important;
+                height: 70px !important;
+            }
+            #ordersList {
+                top: 10px !important;
+                left: 10px !important;
+            }
+            .order {
+                padding: 8px 12px !important;
+                font-size: 0.8em !important;
+            }
+            .ingredient {
+                width: 60px !important;
+                height: 60px !important;
+            }
+            .ingredient img {
+                width: 56px !important;
+                height: 56px !important;
+            }
+            #chef {
+                width: 150px !important;
+            }
+        }
+        #musicToggle {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            border: 2px solid #DA291C;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 900;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            color: #DA291C;
+        }
+        #musicToggle:hover {
+            background: #DA291C;
+            color: white;
+            transform: scale(1.1);
+        }
+        #musicToggle::after {
+            content: "";
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border: 2px dashed #388e3c;
+            border-radius: 50%;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        #volumeControl {
+            position: absolute;
+            bottom: 20px;
+            right: 75px;
+            width: 100px;
+            height: 32px;
+            background: rgba(255,255,255,0.8);
+            border: 2px solid #DA291C;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            z-index: 900;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+        #volumeControl.show {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: all;
+        }
+        #volumeSlider {
+            width: 100%;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            outline: none;
+        }
+        #volumeSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #DA291C;
+            cursor: pointer;
+        }
+        #volumeSlider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #DA291C;
+            cursor: pointer;
+            border: none;
+        }
+        /* Mobile styles for music toggle */
+        @media (max-width: 768px) {
+            #musicToggle {
+                bottom: 10px;
+                right: 10px;
+                width: 34px;
+                height: 34px;
+                font-size: 16px;
+            }
+            #volumeControl {
+                bottom: 10px;
+                right: 55px;
+                width: 80px;
+                height: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="branding">
+        <img src="pizza-hut-logo.png" alt="Pizza Hut Logo" id="pizzaHutLogo">
+    </div>
+    <div id="scoreboard">
+        <div class="score-section" id="scoreSection">SCORE: <span id="score">0</span></div>
+        <div class="score-section" id="highScoreSection">HIGH SCORE: <span id="highScore">0</span></div>
+        <div class="score-section" id="levelSection">LEVEL: <span id="level">1</span></div>
+        <div class="score-section" id="ordersSection">ORDERS LEFT: <span id="ordersLeft">0</span></div>
+    </div>
+    <div id="gameContainer">
+        <canvas id="analogClock" width="90" height="90"></canvas>
+        <div id="ordersList"></div>
+        <img id="chef" src="Pizza Ing/TC.png" alt="Chef">
+        <audio id="mamaMiaSound" src="mamma-mia-marcello.mp3" preload="auto"></audio>
+        <audio id="popSound" src="clear-pop.mp3" preload="auto"></audio>
+        <audio id="backgroundMusic" preload="auto" loop>
+            <source src="tarantella-neapolitan.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="backupMusic" src="tarantella-neapolitan.mp3" preload="auto" loop></audio>
+        <div id="musicToggle" title="Toggle Tarantella Music">🎻</div>
+        <div id="volumeControl">
+            <input type="range" id="volumeSlider" min="0" max="100" value="60">
+        </div>
+        
+        <div id="celebration">
+            <canvas id="confettiCanvas"></canvas>
+            <div id="boxContainer">
+                <!-- Updated with prepared pizza image -->
+                <img id="pizzaBoxFallback" src="Prepared Pizza.png" alt="Pizza" style="width:280px;height:auto;display:block;margin:0 auto;z-index:10000;">
+            </div>
+            <div id="satisfactionMeter"><div id="satisfactionFill"></div></div>
+            <div id="customerAppreciation">GRAZIE! ENJOY YOUR PIZZA!</div>
+        </div>
+        
+        <div id="startScreen">
+            <h1>PIZZA MAKER</h1>
+            <p>Catch the right ingredients to make pizzas!</p>
+            <button id="startButton" class="button">START GAME</button>
+            <div id="loadingIndicator" style="margin-top: 15px; font-size: 14px; color: #666; display: none;">Loading assets... <span id="loadingProgress">0%</span></div>
+        </div>
+        
+        <div id="gameOverScreen">
+            <h1>GAME OVER!</h1>
+            <div id="finalScore">YOUR SCORE: 0</div>
+            <div id="finalPizzas">PIZZAS COMPLETED: 0</div>
+            <div id="newHighScoreMessage">NEW HIGH SCORE!</div>
+            <button id="restartButton" class="button">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+    // --- Debugging ---
+    const DEBUG = false; // Disabling debug now that issues are fixed
+    function debug(message) {
+        if (DEBUG) {
+            console.log(`[DEBUG] ${message}`);
+        }
+    }
+    
+    debug("Game script initializing...");
+    
+    // --- Game Data ---
+    const ingredientImageMap = {
+        'dough': 'Pizza Ing/Dough.png',
+        'sauce': 'Pizza Ing/Tamato.png',
+        'cheese': 'Pizza Ing/Cheese.png',
+        'pepperoni': 'Pizza Ing/pepperoni.png',
+        'onion': 'Pizza Ing/Onion.png',
+        'pepper': 'Pizza Ing/Pepper.png',
+        'olive': 'Pizza Ing/Black Olives.png'
+    };
+    
+    debug("Ingredient images loaded");
+    
+    const allowedIngredients = Object.keys(ingredientImageMap);
+    const pizzaOrders = [
+        { name: 'Classic Pepperoni', ingredients: ['dough', 'sauce', 'cheese', 'pepperoni', 'olive'] },
+        { name: 'Veggie Delight', ingredients: ['dough', 'sauce', 'cheese', 'pepper', 'onion', 'olive'] },
+        { name: 'Cheese Lovers', ingredients: ['dough', 'sauce', 'cheese'] },
+        { name: 'Supreme', ingredients: ['dough', 'sauce', 'cheese', 'pepperoni', 'pepper', 'onion', 'olive'] }
+    ];
+    
+    debug("Pizza orders defined");
+    
+    // --- Game State ---
+    let ingredients = [];
+    let score = 0;
+    let highScore = localStorage.getItem('pizzaHighScore') ? parseInt(localStorage.getItem('pizzaHighScore')) : 0;
+    let level = 1;
+    let completedPizzas = 0;
+    let timeRemaining = 60;
+    let gameActive = false;
+    let currentOrder = null;
+    let collectedIngredients = [];
+    let ordersQueue = [];
+    let spawnIntervalId = null;
+    let timerIntervalId = null;
+    let clockIntervalId = null;
+    
+    // --- UI Setup ---
+    document.getElementById('highScore').textContent = highScore;
+    
+    debug("Initial UI setup complete");
+    
+    // --- Game Functions ---
+    function startGame() {
+        debug("Game starting...");
+        document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('gameOverScreen').style.display = 'none';
+        document.getElementById('celebration').style.display = 'none';
+        
+        resetGame();
+        
+        // Position chef and ensure visibility
+        const chef = document.getElementById('chef');
+        if (!chef) {
+            debug("WARNING: Chef element not found!");
+            return; // Don't continue if chef is missing
+        }
+        
+        // Make chef fully visible
+        chef.style.display = 'block';
+        chef.style.left = '50%';
+        chef.style.transform = 'translateX(-50%)';
+        chef.style.bottom = '20px';
+        chef.style.top = 'auto';
+        chef.classList.add('chef-cooking'); // Add cooking animation
+        chef.classList.add('chef-visible'); // Make visible with transition
+        
+        debug(`Chef positioned and made visible`);
+        debug(`Chef dimensions: width=${chef.offsetWidth}, height=${chef.offsetHeight}, src=${chef.src}`);
+        
+        // Start background music with more direct approach
+        playBackgroundMusic(true);
+        
+        gameActive = true;
+        level = 1;
+        completedPizzas = 0;
+        ordersQueue = shuffle([...pizzaOrders, ...pizzaOrders]);
+        
+        debug(`Orders queue created with ${ordersQueue.length} orders`);
+        
+        updateOrdersList();
+        nextOrder();
+        
+        spawnIntervalId = setInterval(spawnIngredient, 1200);
+        debug("Ingredient spawning started");
+        
+        timerIntervalId = setInterval(() => {
+            if (!gameActive) return;
+            timeRemaining--;
+            updateClock();
+            
+            if (timeRemaining <= 0) {
+                debug("Time's up! Game ending...");
+                endGame();
+            }
+        }, 1000);
+        
+        clockIntervalId = setInterval(updateClock, 1000/30);
+        debug("Clock animation started");
+        
+        requestAnimationFrame(gameLoop);
+        debug("Game loop started");
+    }
+    
+    function resetGame() {
+        debug("Resetting game state");
+        score = 0;
+        timeRemaining = 60;
+        
+        // Clear existing ingredients
+        ingredients.forEach(ing => {
+            if (ing.element && ing.element.parentNode) {
+                ing.element.remove();
+            }
+        });
+        ingredients = [];
+        
+        document.getElementById('score').textContent = score;
+        document.getElementById('level').textContent = level;
+        document.getElementById('ordersLeft').textContent = pizzaOrders.length;
+        updateClock();
+        
+        debug("Game reset complete");
+    }
+    
+    function endGame() {
+        debug("Game ending");
+        gameActive = false;
+        clearInterval(spawnIntervalId);
+        clearInterval(timerIntervalId);
+        clearInterval(clockIntervalId);
+        
+        // Stop background music
+        stopBackgroundMusic();
+        
+        // Hide chef at game end
+        const chef = document.getElementById('chef');
+        if (chef) {
+            chef.classList.remove('chef-cooking');
+            chef.classList.remove('chef-catch');
+            chef.classList.remove('chef-visible');
+        }
+        
+        document.getElementById('gameOverScreen').style.display = 'flex';
+        document.getElementById('finalScore').textContent = `YOUR SCORE: ${score}`;
+        document.getElementById('finalPizzas').textContent = `PIZZAS COMPLETED: ${completedPizzas}`;
+        
+        const newHighScoreMessage = document.getElementById('newHighScoreMessage');
+        
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('pizzaHighScore', highScore);
+            document.getElementById('highScore').textContent = highScore;
+            debug(`New high score: ${highScore}`);
+            
+            // Show new high score message with animation
+            if (newHighScoreMessage) {
+                newHighScoreMessage.style.display = 'block';
+                newHighScoreMessage.style.animation = 'chef-active 1s infinite alternate ease-in-out';
+            }
+        } else if (newHighScoreMessage) {
+            newHighScoreMessage.style.display = 'none';
+        }
+        
+        debug("Game over screen displayed");
+    }
+    
+    function nextOrder() {
+        if (ordersQueue.length === 0) {
+            debug("No more orders, ending game");
+            endGame();
+            return;
+        }
+        
+        currentOrder = ordersQueue.shift();
+        collectedIngredients = [];
+        document.getElementById('ordersLeft').textContent = ordersQueue.length + 1;
+        
+        // Level progression logic - increase level every 2 completed pizzas
+        if (completedPizzas > 0 && completedPizzas % 2 === 0) {
+            level = Math.min(5, Math.floor(completedPizzas / 2) + 1);
+            document.getElementById('level').textContent = level;
+            
+            // Adjust game difficulty based on level
+            clearInterval(spawnIntervalId);
+            const spawnSpeed = Math.max(400, 1200 - (level - 1) * 200); // Faster spawning with higher levels
+            spawnIntervalId = setInterval(spawnIngredient, spawnSpeed);
+            
+            // Add time bonus for level up
+            timeRemaining = Math.min(60, timeRemaining + 15);
+            
+            // Visual feedback for level up
+            const gameContainer = document.getElementById('gameContainer');
+            const levelUpMsg = document.createElement('div');
+            levelUpMsg.textContent = `LEVEL UP! ${level}`;
+            levelUpMsg.style.position = "absolute";
+            levelUpMsg.style.left = "50%";
+            levelUpMsg.style.top = "40%";
+            levelUpMsg.style.transform = "translate(-50%, -50%)";
+            levelUpMsg.style.color = "#F5B800";
+            levelUpMsg.style.fontWeight = "bold";
+            levelUpMsg.style.fontSize = "48px";
+            levelUpMsg.style.zIndex = "1000";
+            levelUpMsg.style.pointerEvents = "none";
+            levelUpMsg.style.textShadow = "2px 2px 0 #DA291C";
+            gameContainer.appendChild(levelUpMsg);
+            
+            // Animate and remove
+            setTimeout(() => {
+                levelUpMsg.style.opacity = "0";
+                levelUpMsg.style.top = "30%";
+                levelUpMsg.style.transition = "all 0.7s ease";
+            }, 100);
+            
+            setTimeout(() => {
+                if (levelUpMsg.parentNode) {
+                    levelUpMsg.parentNode.removeChild(levelUpMsg);
+                }
+            }, 1000);
+        }
+        
+        debug(`New order: ${currentOrder.name}`);
+        debug(`Ingredients needed: ${currentOrder.ingredients.join(', ')}`);
+        debug(`Current level: ${level}, Spawn speed: ${Math.max(400, 1200 - (level - 1) * 200)}ms`);
+        
+        updateOrdersList();
+    }
+    
+    function updateOrdersList() {
+        const ordersList = document.getElementById('ordersList');
+        ordersList.innerHTML = '';
+        
+        if (currentOrder) {
+            const orderDiv = document.createElement('div');
+            orderDiv.className = 'order';
+            orderDiv.innerHTML = `<b>${currentOrder.name}</b><br>` + 
+                currentOrder.ingredients.map(ing => 
+                    `<img src='${ingredientImageMap[ing]}' style='width:24px;vertical-align:middle;'> ${ing.toUpperCase()}`
+                ).join('<br>');
+            ordersList.appendChild(orderDiv);
+            
+            debug("Order display updated");
+        }
+    }
+    
+    function spawnIngredient() {
+        if (!gameActive) return;
+        
+        let ingredientType;
+        const recipeChance = 0.7 - (level * 0.05); // Less recipe ingredients at higher levels
+        
+        if (Math.random() < recipeChance && currentOrder) {
+            const neededIngredients = currentOrder.ingredients.filter(ing => !collectedIngredients.includes(ing));
+            if (neededIngredients.length > 0) {
+                ingredientType = neededIngredients[Math.floor(Math.random() * neededIngredients.length)];
+            } else {
+                ingredientType = allowedIngredients[Math.floor(Math.random() * allowedIngredients.length)];
+            }
+        } else {
+            ingredientType = allowedIngredients[Math.floor(Math.random() * allowedIngredients.length)];
+        }
+        
+        debug(`Spawning ingredient: ${ingredientType}`);
+        
+        const ingredient = document.createElement('div');
+        ingredient.className = 'ingredient';
+        
+        const img = document.createElement('img');
+        img.src = ingredientImageMap[ingredientType] || '';
+        img.alt = ingredientType;
+        ingredient.appendChild(img);
+        
+        const gameContainer = document.getElementById('gameContainer');
+        const containerWidth = gameContainer.offsetWidth;
+        
+        const posX = Math.random() * (containerWidth - 80);
+        ingredient.style.left = `${posX}px`;
+        ingredient.style.top = '-80px';
+        
+        gameContainer.appendChild(ingredient);
+        
+        const baseSpeed = 3 + (level * 0.8); // Speed increases with level
+        const randomSpeed = Math.random() * 2; // Add some randomness
+        
+        ingredients.push({
+            element: ingredient,
+            type: ingredientType,
+            speed: baseSpeed + randomSpeed
+        });
+    }
+    
+    // --- Performance Optimizations ---
+    // Debounce function for performance
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Use request animation frame timing
+    let lastFrameTime = 0;
+    const TARGET_FPS = 60;
+    const FRAME_MIN_TIME = (1000/TARGET_FPS);
+
+    function gameLoop(timestamp) {
+        if (!gameActive) return;
+        
+        // Calculate time elapsed
+        const elapsed = timestamp - lastFrameTime;
+        
+        // If enough time has passed, update game state
+        if (elapsed > FRAME_MIN_TIME) {
+            lastFrameTime = timestamp - (elapsed % FRAME_MIN_TIME);
+            updateIngredients();
+        }
+        
+        requestAnimationFrame(gameLoop);
+    }
+    
+    function updateIngredients() {
+        for (let i = ingredients.length - 1; i >= 0; i--) {
+            const ingredient = ingredients[i];
+            const currentTop = parseFloat(ingredient.element.style.top) || 0;
+            ingredient.element.style.top = `${currentTop + ingredient.speed}px`;
+            
+            // Check for catching
+            const chef = document.getElementById('chef');
+            const chefRect = chef.getBoundingClientRect();
+            const ingredientRect = ingredient.element.getBoundingClientRect();
+            
+            const gameContainer = document.getElementById('gameContainer');
+            const containerHeight = gameContainer.offsetHeight;
+            
+            // Only check for collision in bottom area where chef is
+            if (currentTop > containerHeight * 0.7) {
+                const distance = Math.hypot(
+                    chefRect.left + chefRect.width/2 - (ingredientRect.left + ingredientRect.width/2),
+                    chefRect.top + chefRect.height/2 - (ingredientRect.top + ingredientRect.height/2)
+                );
+                
+                // Use a slightly larger collision radius for better gameplay
+                const collisionRadius = 70;
+                
+                if (distance < collisionRadius) {
+                    debug(`Ingredient caught: ${ingredient.type}`);
+                    catchIngredient(ingredient, i);
+                    continue;
+                }
+            }
+            
+            // Remove if below screen
+            if (currentTop > containerHeight) {
+                if (ingredient.element && ingredient.element.parentNode) {
+                    ingredient.element.remove();
+                }
+                ingredients.splice(i, 1);
+            }
+        }
+    }
+    
+    function catchIngredient(ingredient, index) {
+        const isCorrect = currentOrder.ingredients.includes(ingredient.type) && 
+                         !collectedIngredients.includes(ingredient.type);
+        
+        // Trigger chef catch animation
+        const chef = document.getElementById('chef');
+        if (chef) {
+            chef.classList.remove('chef-catch'); // Remove animation class
+            void chef.offsetWidth; // Force reflow
+            chef.classList.add('chef-catch'); // Add it back to restart animation
+            
+            // Remove catch animation after it completes
+            setTimeout(() => {
+                chef.classList.remove('chef-catch');
+            }, 400);
+        }
+        
+        if (isCorrect) {
+            collectedIngredients.push(ingredient.type);
+            updateScore(10);
+            debug(`Correct ingredient: ${ingredient.type}. Score +10`);
+            
+            // Play pop sound for correct ingredient with increased volume
+            const popSound = document.getElementById('popSound');
+            if (popSound) {
+                popSound.volume = 1.0; // Set to maximum volume
+                popSound.currentTime = 0;
+                
+                // Try playing with fallback for mobile devices
+                try {
+                    const playPromise = popSound.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            debug("Pop sound played for correct ingredient");
+                        }).catch(err => {
+                            debug(`Sound error (promise): ${err.message}`);
+                        });
+                    }
+                } catch (e) {
+                    debug(`Sound error (try/catch): ${e.message}`);
+                }
+            }
+            
+            // Visual feedback for ingredient catch
+            const gameContainer = document.getElementById('gameContainer');
+            const feedback = document.createElement('div');
+            feedback.textContent = "+10";
+            feedback.style.position = "absolute";
+            feedback.style.left = ingredient.element.style.left;
+            feedback.style.top = ingredient.element.style.top;
+            feedback.style.color = "#4CAF50";
+            feedback.style.fontWeight = "bold";
+            feedback.style.fontSize = "24px";
+            feedback.style.zIndex = "1000";
+            feedback.style.pointerEvents = "none";
+            feedback.style.transition = "all 0.5s ease-out";
+            gameContainer.appendChild(feedback);
+            
+            // Animate the feedback
+            setTimeout(() => {
+                feedback.style.top = (parseFloat(feedback.style.top) - 50) + "px";
+                feedback.style.opacity = "0";
+            }, 50);
+            
+            // Remove the feedback after animation
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    feedback.parentNode.removeChild(feedback);
+                }
+            }, 550);
+            
+            if (collectedIngredients.length === currentOrder.ingredients.length) {
+                debug("All ingredients collected for this order!");
+                setTimeout(() => {
+                    completePizza();
+                }, 800);
+            }
+        } else {
+            updateScore(-5);
+            debug(`Wrong ingredient: ${ingredient.type}. Score -5`);
+            
+            // Visual feedback for wrong ingredient
+            const gameContainer = document.getElementById('gameContainer');
+            const feedback = document.createElement('div');
+            feedback.textContent = "-5";
+            feedback.style.position = "absolute";
+            feedback.style.left = ingredient.element.style.left;
+            feedback.style.top = ingredient.element.style.top;
+            feedback.style.color = "#D32F2F";
+            feedback.style.fontWeight = "bold";
+            feedback.style.fontSize = "24px";
+            feedback.style.zIndex = "1000";
+            feedback.style.pointerEvents = "none";
+            feedback.style.transition = "all 0.5s ease-out";
+            gameContainer.appendChild(feedback);
+            
+            // Animate the feedback
+            setTimeout(() => {
+                feedback.style.top = (parseFloat(feedback.style.top) - 50) + "px";
+                feedback.style.opacity = "0";
+            }, 50);
+            
+            // Remove the feedback after animation
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    feedback.parentNode.removeChild(feedback);
+                }
+            }, 550);
+        }
+        
+        if (ingredient.element && ingredient.element.parentNode) {
+            ingredient.element.remove();
+        }
+        ingredients.splice(index, 1);
+    }
+    
+    function completePizza() {
+        completedPizzas++;
+        updateScore(30);
+        debug(`Pizza completed! Score +30. Total completed: ${completedPizzas}`);
+        
+        showCelebration();
+        
+        setTimeout(() => {
+            nextOrder();
+        }, 2200);
+    }
+    
+    function updateScore(points) {
+        score += points;
+        document.getElementById('score').textContent = score;
+        
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('pizzaHighScore', highScore);
+            document.getElementById('highScore').textContent = highScore;
+        }
+    }
+    
+    // --- Analog Clock ---
+    function updateClock() {
+        const canvas = document.getElementById('analogClock');
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        
+        ctx.clearRect(0, 0, w, h);
+        
+        // Draw face
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(w/2, h/2, w/2-4, 0, 2*Math.PI);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#d32f2f';
+        ctx.stroke();
+        
+        // Draw ticks
+        for (let i=0; i<12; i++) {
+            let angle = (i/12)*2*Math.PI;
+            let x1 = w/2 + Math.cos(angle)*(w/2-12);
+            let y1 = h/2 + Math.sin(angle)*(w/2-12);
+            let x2 = w/2 + Math.cos(angle)*(w/2-6);
+            let y2 = h/2 + Math.sin(angle)*(w/2-6);
+            
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#222';
+            ctx.stroke();
+        }
+        
+        // Draw hand
+        let angle = ((timeRemaining%60)/60)*2*Math.PI - Math.PI/2;
+        ctx.beginPath();
+        ctx.moveTo(w/2, h/2);
+        ctx.lineTo(w/2 + Math.cos(angle)*(w/2-18), h/2 + Math.sin(angle)*(w/2-18));
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = timeRemaining <= 10 ? '#fbc02d' : '#388e3c';
+        ctx.stroke();
+        
+        // Draw center
+        ctx.beginPath();
+        ctx.arc(w/2, h/2, 6, 0, 2*Math.PI);
+        ctx.fillStyle = '#d32f2f';
+        ctx.fill();
+        ctx.restore();
+        
+        // Visual alert
+        if (timeRemaining <= 10) {
+            ctx.save();
+            ctx.globalAlpha = 0.3 + 0.7*Math.abs(Math.sin(Date.now()/200));
+            ctx.beginPath();
+            ctx.arc(w/2, h/2, w/2-4, 0, 2*Math.PI);
+            ctx.fillStyle = '#fbc02d';
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+    
+    // --- Celebration Animation ---
+    function showCelebration() {
+        debug("Showing celebration animation");
+        
+        // Show celebration container
+        const celebration = document.getElementById('celebration');
+        celebration.style.display = 'flex';
+        
+        // Get pizza box fallback
+        const pizzaBox = document.getElementById('pizzaBoxFallback');
+        
+        // Show satisfaction meter and hide appreciation text initially
+        const satisfactionFill = document.getElementById('satisfactionFill');
+        const customerAppreciation = document.getElementById('customerAppreciation');
+        satisfactionFill.style.width = '0%';
+        customerAppreciation.style.display = 'none';
+        
+        // Pause background music
+        pauseBackgroundMusic();
+        
+        // Play Mamma Mia sound
+        const mamaMiaSound = document.getElementById('mamaMiaSound');
+        if (mamaMiaSound) {
+            mamaMiaSound.volume = 1.0;
+            mamaMiaSound.currentTime = 0;
+            mamaMiaSound.play().catch(err => debug("Sound play error: " + err.message));
+            
+            // Resume background music after celebration sound finishes
+            mamaMiaSound.onended = () => {
+                if (gameActive) resumeBackgroundMusic();
+            };
+        }
+        
+        // Animate pizza box
+        setTimeout(() => {
+            if (pizzaBox) pizzaBox.style.transform = 'rotate(-10deg)';
+        }, 100);
+        
+        setTimeout(() => {
+            if (pizzaBox) pizzaBox.style.transform = 'rotate(5deg)';
+        }, 300);
+        
+        setTimeout(() => {
+            if (pizzaBox) pizzaBox.style.transform = 'rotate(0deg)';
+        }, 500);
+        
+        // Animate satisfaction meter
+        setTimeout(() => {
+            satisfactionFill.style.width = '100%';
+        }, 600);
+        
+        // Show customer appreciation
+        setTimeout(() => {
+            customerAppreciation.style.display = 'block';
+        }, 1200);
+        
+        // Confetti
+        confettiBurst();
+        
+        // Hide after
+        setTimeout(() => {
+            celebration.style.display = 'none';
+            satisfactionFill.style.width = '0%';
+            customerAppreciation.style.display = 'none';
+            debug("Celebration animation completed");
+        }, 2500);
+    }
+    
+    function confettiBurst() {
+        const canvas = document.getElementById('confettiCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        let confetti = [];
+        for (let i = 0; i < 120; i++) {
+            confetti.push({
+                x: Math.random() * canvas.width,
+                y: -20,
+                r: 4 + Math.random() * 6,
+                d: Math.random() * 80,
+                color: `hsl(${Math.random()*360},90%,60%)`,
+                tilt: Math.random() * 10 - 10,
+                speed: 2 + Math.random() * 3
+            });
+        }
+        
+        let frame = 0;
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let i = 0; i < confetti.length; i++) {
+                let c = confetti[i];
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, c.r, 0, 2 * Math.PI);
+                ctx.fillStyle = c.color;
+                ctx.fill();
+                
+                c.y += c.speed;
+                c.x += Math.sin(frame/10 + c.d);
+                
+                if (c.y > canvas.height) {
+                    c.x = Math.random() * canvas.width;
+                    c.y = -10;
+                }
+            }
+        }
+        
+        function animate() {
+            draw();
+            frame++;
+            
+            if (frame < 60) {
+                requestAnimationFrame(animate);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+        
+        animate();
+    }
+    
+    // --- Mouse Control (Chef stays in bottom quarter) ---
+    document.addEventListener('mousemove', (event) => {
+        if (!gameActive) return;
+        
+        const chef = document.getElementById('chef');
+        if (!chef) {
+            debug("WARNING: Chef element not found in mousemove handler!");
+            return;
+        }
+        
+        const gameContainer = document.getElementById('gameContainer');
+        const containerRect = gameContainer.getBoundingClientRect();
+        
+        // Calculate chef position based on mouse
+        const mouseX = event.clientX - containerRect.left;
+        
+        // Keep chef within game boundaries
+        const chefWidth = chef.offsetWidth || 200;
+        const boundedX = Math.max(chefWidth/2, Math.min(mouseX, containerRect.width - chefWidth/2));
+        
+        // Update chef position - use left positioning only
+        chef.style.left = `${boundedX - chefWidth/2}px`;
+        chef.style.transform = '';
+        
+        // Keep chef at bottom of screen - don't change vertical position
+        // Leave the bottom: 20px in the CSS
+        
+        // Make sure chef has cooking animation
+        if (!chef.classList.contains('chef-cooking')) {
+            chef.classList.add('chef-cooking');
+        }
+        
+        debug(`Chef position updated: x=${boundedX - chefWidth/2}`);
+    });
+    
+    // --- Event Listeners ---
+    document.getElementById('startButton').addEventListener('click', () => {
+        debug("Start button clicked");
+        // If start button still says "LOADING...", reset it first
+        const startButton = document.getElementById('startButton');
+        if (startButton && startButton.textContent === "LOADING...") {
+            startButton.textContent = "START GAME";
+            startButton.disabled = false;
+            
+            // Force load the essential audio 
+            const mamaMiaSound = document.getElementById('mamaMiaSound');
+            if (mamaMiaSound) mamaMiaSound.load();
+            
+            const popSound = document.getElementById('popSound');
+            if (popSound) popSound.load();
+            
+            const backgroundMusic = document.getElementById('backgroundMusic');
+            if (backgroundMusic) backgroundMusic.load();
+            
+            // Hide loading indicator if visible
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (loadingIndicator) loadingIndicator.style.display = "none";
+        }
+        
+        // Try to directly play the Tarantella music
+        try {
+            // Create a direct audio element for tarantella
+            const tarantellaAudio = new Audio("tarantella-neapolitan.mp3");
+            tarantellaAudio.volume = 0.6;
+            tarantellaAudio.loop = true;
+            window.directAudio = tarantellaAudio;
+            
+            debug("Attempting to play tarantella music directly on start");
+            tarantellaAudio.play()
+                .then(() => debug("Tarantella music started successfully on game start"))
+                .catch(err => debug(`Error playing tarantella on start: ${err.message}`));
+        } catch (err) {
+            debug(`Exception creating tarantella audio: ${err.message}`);
+        }
+        
+        startGame();
+    });
+    
+    document.getElementById('restartButton').addEventListener('click', () => {
+        debug("Restart button clicked");
+        startGame();
+    });
+    
+    // --- Load Images First ---
+    function preloadImages() {
+        debug("Preloading images and sounds...");
+        
+        const imagesToPreload = [
+            'Pizza Ing/TC.png',
+            'Pizza Ing/Dough.png',
+            'Pizza Ing/Tamato.png',
+            'Pizza Ing/Cheese.png',
+            'Pizza Ing/pepperoni.png',
+            'Pizza Ing/Onion.png',
+            'Pizza Ing/Pepper.png',
+            'Pizza Ing/Black Olives.png',
+            'Pizza Ing/Pizza.png',
+            'pizza-hut-logo.png',
+            'Prepared Pizza.png',
+            'hd-pizza.png'
+        ];
+        
+        // Preload the sounds
+        const soundsToPreload = [
+            { id: 'mamaMiaSound', src: 'mamma-mia-marcello.mp3' },
+            { id: 'popSound', src: 'clear-pop.mp3' },
+            { src: 'tarantella-neapolitan.mp3' }
+        ];
+        
+        // Preload non-element sounds
+        soundsToPreload.filter(s => !s.id).forEach(sound => {
+            const audio = new Audio();
+            audio.src = sound.src;
+            audio.preload = 'auto';
+            audio.load();
+            debug(`Preloading sound without element: ${sound.src}`);
+        });
+        
+        // Handle background music separately since it has multiple sources
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        if (backgroundMusic) {
+            backgroundMusic.load();
+        }
+
+        let soundsLoaded = 0;
+        const totalSounds = soundsToPreload.filter(s => s.id).length;
+        let loadedImages = 0;
+        const totalImages = imagesToPreload.length;
+        const totalResources = totalImages + totalSounds;
+        let loadedResources = 0;
+        
+        // Function to update progress
+        function updateProgress() {
+            loadedResources = loadedImages + soundsLoaded;
+            const progressPercent = (loadedResources / totalResources) * 100;
+            
+            // Call the global update function if available
+            if (typeof updateLoadingProgress === 'function') {
+                updateLoadingProgress(progressPercent);
+            }
+            debug(`Loading progress: ${progressPercent.toFixed(1)}%`);
+        }
+
+        // Preload sounds with proper error handling
+        soundsToPreload.filter(s => s.id).forEach(sound => {
+            const audioElement = document.getElementById(sound.id);
+            if (audioElement) {
+                debug(`Preloading sound: ${sound.src}`);
+                
+                // Create event listeners for sound loading
+                const handleLoadedData = () => {
+                    soundsLoaded++;
+                    debug(`Loaded sound ${soundsLoaded}/${totalSounds}: ${sound.src}`);
+                    audioElement.removeEventListener('loadeddata', handleLoadedData);
+                    audioElement.removeEventListener('error', handleError);
+                    updateProgress();
+                    checkAllLoaded();
+                };
+                
+                const handleError = (err) => {
+                    debug(`ERROR loading sound: ${sound.src} - ${err.message || 'Unknown error'}`);
+                    soundsLoaded++;
+                    audioElement.removeEventListener('loadeddata', handleLoadedData);
+                    audioElement.removeEventListener('error', handleError);
+                    updateProgress();
+                    checkAllLoaded();
+                };
+                
+                audioElement.addEventListener('loadeddata', handleLoadedData);
+                audioElement.addEventListener('error', handleError);
+                
+                // Force load if needed
+                if (audioElement.readyState >= 2) {
+                    handleLoadedData();
+                } else {
+                    audioElement.load();
+                }
+            } else {
+                debug(`WARNING: Sound element not found: ${sound.id}`);
+                soundsLoaded++;
+                updateProgress();
+                checkAllLoaded();
+            }
+        });
+        
+        return new Promise((resolve, reject) => {
+            // Check if all resources are loaded
+            function checkAllLoaded() {
+                if (loadedImages === totalImages && soundsLoaded === totalSounds) {
+                    debug("All images and sounds preloaded successfully");
+                    resolve();
+                }
+            }
+            
+            imagesToPreload.forEach(src => {
+                const img = new Image();
+                img.onload = () => {
+                    loadedImages++;
+                    debug(`Loaded image ${loadedImages}/${totalImages}: ${src}`);
+                    updateProgress();
+                    checkAllLoaded();
+                };
+                img.onerror = () => {
+                    debug(`ERROR loading image: ${src}`);
+                    loadedImages++;
+                    updateProgress();
+                    checkAllLoaded();
+                };
+                img.src = src;
+            });
+            
+            // Fallback in case nothing loads
+            setTimeout(() => {
+                if (loadedImages < totalImages || soundsLoaded < totalSounds) {
+                    debug("WARNING: Not all resources loaded in time, continuing anyway");
+                    resolve();
+                }
+            }, 5000);
+        });
+    }
+
+    // --- Window Load ---
+    window.addEventListener('load', () => {
+        debug("Window loaded");
+        
+        // Preload the Tarantella music file to ensure it's ready
+        const tarantellaPreload = new Audio("tarantella-neapolitan.mp3");
+        tarantellaPreload.addEventListener('canplaythrough', () => {
+            debug("Tarantella music preloaded successfully");
+        });
+        tarantellaPreload.addEventListener('error', (e) => {
+            debug(`Error preloading Tarantella: ${e.message || 'Unknown error'}`);
+        });
+        tarantellaPreload.load();
+        
+        // Show loading message while preloading images
+        const startScreen = document.getElementById('startScreen');
+        const startButton = document.getElementById('startButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const loadingProgress = document.getElementById('loadingProgress');
+        const originalButtonText = startButton.textContent;
+        
+        startButton.disabled = true;
+        startButton.textContent = "LOADING...";
+        if (loadingIndicator) loadingIndicator.style.display = "block";
+        
+        // Function to ensure the button is restored
+        function restoreStartButton() {
+            if (startButton) {
+                startButton.disabled = false;
+                startButton.textContent = originalButtonText;
+                if (loadingIndicator) loadingIndicator.style.display = "none";
+                debug("Start button restored to original state");
+            }
+        }
+        
+        // Function to update loading progress
+        function updateLoadingProgress(percent) {
+            if (loadingProgress) {
+                loadingProgress.textContent = `${Math.round(percent)}%`;
+            }
+        }
+        
+        // Flag to track if button has been restored
+        let buttonRestored = false;
+        
+        // Set a timeout to ensure button is restored even if preloading hangs
+        const buttonRestoreTimeout = setTimeout(() => {
+            if (!buttonRestored) {
+                debug("Force restoring start button after timeout");
+                buttonRestored = true;
+                restoreStartButton();
+                
+                // Force preload the background music
+                const backgroundMusic = document.getElementById('backgroundMusic');
+                if (backgroundMusic) {
+                    backgroundMusic.load();
+                }
+            }
+        }, 5000);
+        
+        // Setup music toggle button
+        const musicToggle = document.getElementById('musicToggle');
+        if (musicToggle) {
+            musicToggle.innerHTML = '🎻';
+            musicToggle.addEventListener('click', toggleBackgroundMusic);
+            
+            // Show volume control on hover
+            const volumeControl = document.getElementById('volumeControl');
+            if (volumeControl) {
+                musicToggle.addEventListener('mouseenter', () => {
+                    volumeControl.classList.add('show');
+                });
+                
+                volumeControl.addEventListener('mouseleave', () => {
+                    volumeControl.classList.remove('show');
+                });
+                
+                // Setup volume slider
+                const volumeSlider = document.getElementById('volumeSlider');
+                if (volumeSlider) {
+                    // Get saved volume or use default
+                    const savedVolume = localStorage.getItem('musicVolume');
+                    volumeSlider.value = savedVolume !== null ? savedVolume : 60;
+                    
+                    volumeSlider.addEventListener('input', (e) => {
+                        const volume = e.target.value / 100;
+                        
+                        // Apply volume to all audio elements
+                        const backgroundMusic = document.getElementById('backgroundMusic');
+                        if (backgroundMusic) {
+                            backgroundMusic.volume = volume;
+                        }
+                        
+                        const backupMusic = document.getElementById('backupMusic');
+                        if (backupMusic) {
+                            backupMusic.volume = volume;
+                        }
+                        
+                        if (window.directAudio) {
+                            window.directAudio.volume = volume;
+                        }
+                        
+                        localStorage.setItem('musicVolume', e.target.value);
+                        debug(`Music volume set to ${volume}`);
+                    });
+                }
+            }
+            
+            // Set initial state based on localStorage
+            const musicEnabled = localStorage.getItem('musicEnabled');
+            if (musicEnabled === 'false') {
+                musicToggle.innerHTML = '🔇';
+                musicToggle.setAttribute('data-playing', 'false');
+            } else {
+                musicToggle.innerHTML = '🎻';
+                musicToggle.setAttribute('data-playing', 'true');
+            }
+        }
+        
+        // Replace the existing chef image with a new one
+        const oldChef = document.getElementById('chef');
+        if (oldChef && oldChef.parentNode) {
+            oldChef.parentNode.removeChild(oldChef);
+        }
+        
+        const gameContainer = document.getElementById('gameContainer');
+        const newChef = document.createElement('img');
+        newChef.id = 'chef';
+        newChef.src = 'Pizza Ing/TC.png';
+        newChef.alt = 'Chef';
+        newChef.style.position = 'absolute';
+        newChef.style.width = '200px';
+        newChef.style.height = 'auto';
+        newChef.style.zIndex = '100';
+        newChef.style.opacity = '0';
+        gameContainer.appendChild(newChef);
+        
+        debug("Created new chef element (initially hidden)");
+        
+        // Preload the pizza image
+        const pizzaImage = new Image();
+        pizzaImage.src = 'Prepared Pizza.png';
+        pizzaImage.onload = () => {
+            debug("Pizza image loaded successfully");
+            
+            // Set the source on the actual element to ensure it's loaded
+            const pizzaElement = document.getElementById('pizzaBoxFallback');
+            if (pizzaElement) {
+                pizzaElement.src = pizzaImage.src;
+            }
+        };
+        
+        // Continue with preloading other images
+        preloadImages().then(() => {
+            // Position chef initially but keep hidden
+            const containerRect = gameContainer.getBoundingClientRect();
+            
+            newChef.style.display = 'block';
+            newChef.style.left = '50%';
+            newChef.style.transform = 'translateX(-50%)';
+            newChef.style.bottom = '20px';
+            newChef.style.top = 'auto';
+            
+            debug(`Chef initialized: bottom=20px, left=50%, opacity=0`);
+            
+            updateClock();
+            
+            // Re-enable start button
+            buttonRestored = true;
+            clearTimeout(buttonRestoreTimeout);
+            restoreStartButton();
+        }).catch(err => {
+            debug(`Error during preloading: ${err.message}`);
+            // Make sure button is restored even if there's an error
+            buttonRestored = true;
+            clearTimeout(buttonRestoreTimeout);
+            restoreStartButton();
+        });
+    });
+    
+    // --- Utility ---
+    function shuffle(array) {
+        let currentIndex = array.length, randomIndex;
+        while (currentIndex !== 0) {
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+        return array;
+    }
+    
+    // Add touch support for mobile devices
+    document.addEventListener('touchmove', (event) => {
+        if (!gameActive) return;
+        event.preventDefault();
+        
+        const chef = document.getElementById('chef');
+        if (!chef) {
+            debug("WARNING: Chef element not found in touchmove handler!");
+            return;
+        }
+        
+        const gameContainer = document.getElementById('gameContainer');
+        const containerRect = gameContainer.getBoundingClientRect();
+        
+        // Get the primary touch
+        const touch = event.touches[0];
+        
+        // Calculate chef position based on touch
+        const touchX = touch.clientX - containerRect.left;
+        
+        // Keep chef within game boundaries
+        const chefWidth = chef.offsetWidth || 200;
+        const boundedX = Math.max(chefWidth/2, Math.min(touchX, containerRect.width - chefWidth/2));
+        
+        // Update chef position - use left positioning only
+        chef.style.left = `${boundedX - chefWidth/2}px`;
+        chef.style.transform = '';
+        
+        // Make sure chef has cooking animation
+        if (!chef.classList.contains('chef-cooking')) {
+            chef.classList.add('chef-cooking');
+        }
+    }, { passive: false });
+
+    // Prevent scrolling on mobile when touching the game
+    document.getElementById('gameContainer').addEventListener('touchmove', (e) => {
+        e.preventDefault();
+    }, { passive: false });
+
+    // Handle window resize
+    window.addEventListener('resize', debounce(() => {
+        if (gameActive) {
+            const canvas = document.getElementById('confettiCanvas');
+            if (canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            
+            // Reposition chef at bottom
+            const chef = document.getElementById('chef');
+            if (chef) {
+                chef.style.bottom = '20px';
+                chef.style.top = 'auto';
+            }
+        }
+    }, 100));
+    
+    // --- Sound Controls ---
+    function playBackgroundMusic(forcePlay = false) {
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const backupMusic = document.getElementById('backupMusic');
+        const musicToggle = document.getElementById('musicToggle');
+        const musicEnabled = musicToggle ? (musicToggle.getAttribute('data-playing') !== 'false') : true;
+        
+        if (!musicEnabled && !forcePlay) {
+            debug("Music disabled by user preference");
+            return;
+        }
+        
+        // Get saved volume or use default
+        const savedVolume = localStorage.getItem('musicVolume');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volume = savedVolume !== null ? (savedVolume / 100) : 0.6;
+        
+        if (volumeSlider) {
+            volumeSlider.value = savedVolume !== null ? savedVolume : 60;
+        }
+        
+        // Try to play using the multi-source audio element first
+        if (backgroundMusic) {
+            debug("Attempting to play background music");
+            backgroundMusic.volume = volume;
+            backgroundMusic.load();
+            
+            const playPromise = backgroundMusic.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    debug("Background music started successfully");
+                    if (musicToggle && musicEnabled) {
+                        musicToggle.innerHTML = '🎻';
+                        musicToggle.setAttribute('data-playing', 'true');
+                    }
+                }).catch(err => {
+                    debug(`Background music play error: ${err.message}`);
+                    tryBackupMusic();
+                });
+            } else {
+                debug("Play promise undefined, trying backup approach");
+                tryBackupMusic();
+            }
+        } else {
+            debug("Background music element not found");
+            tryBackupMusic();
+        }
+        
+        // Function to try the backup music element
+        function tryBackupMusic() {
+            if (backupMusic) {
+                debug("Trying backup music element");
+                backupMusic.volume = volume;
+                backupMusic.load();
+                
+                try {
+                    const backupPlayPromise = backupMusic.play();
+                    if (backupPlayPromise !== undefined) {
+                        backupPlayPromise.then(() => {
+                            debug("Backup music started successfully");
+                            if (musicToggle && musicEnabled) {
+                                musicToggle.innerHTML = '🎻';
+                                musicToggle.setAttribute('data-playing', 'true');
+                            }
+                        }).catch(e => {
+                            debug(`Backup music error: ${e.message}`);
+                            tryDirectCreation();
+                        });
+                    } else {
+                        debug("Backup play promise undefined, trying direct creation");
+                        tryDirectCreation();
+                    }
+                } catch (e) {
+                    debug(`Error playing backup music: ${e.message}`);
+                    tryDirectCreation();
+                }
+            } else {
+                debug("Backup music element not found");
+                tryDirectCreation();
+            }
+        }
+    }
+
+    // Create a new audio element directly as a last resort
+    function tryDirectCreation() {
+        debug("Creating new audio element directly");
+        try {
+            const newAudio = new Audio("tarantella-neapolitan.mp3");
+            newAudio.volume = volume;
+            newAudio.loop = true;
+            
+            // Store reference for later use
+            window.directAudio = newAudio;
+            
+            newAudio.addEventListener('canplaythrough', () => {
+                debug("Direct audio can play through");
+                newAudio.play().then(() => {
+                    debug("Direct audio playing successfully");
+                    if (musicToggle && musicEnabled) {
+                        musicToggle.innerHTML = '🎻';
+                        musicToggle.setAttribute('data-playing', 'true');
+                    }
+                }).catch(e => {
+                    debug(`Direct audio play error: ${e.message}`);
+                    addMusicStartListener();
+                });
+            });
+            
+            newAudio.addEventListener('error', (e) => {
+                debug(`Direct audio error: ${e.message || 'Unknown error'}`);
+                addMusicStartListener();
+            });
+            
+            newAudio.load();
+        } catch (e) {
+            debug(`Error creating direct audio: ${e.message}`);
+            addMusicStartListener();
+        }
+    }
+
+    function addMusicStartListener() {
+        // Add one-time click listener to start music on user interaction
+        document.addEventListener('click', function musicStarter() {
+            const backgroundMusic = document.getElementById('backgroundMusic');
+            const musicToggle = document.getElementById('musicToggle');
+            const musicEnabled = musicToggle ? (musicToggle.getAttribute('data-playing') !== 'false') : true;
+            
+            if (backgroundMusic && musicEnabled) {
+                backgroundMusic.play().catch(e => debug(`User interaction music error: ${e.message}`));
+            }
+            document.removeEventListener('click', musicStarter);
+        }, { once: true });
+    }
+
+    function toggleBackgroundMusic(e) {
+        e.stopPropagation();
+        const musicToggle = document.getElementById('musicToggle');
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const backupMusic = document.getElementById('backupMusic');
+        
+        if (!musicToggle) return;
+        
+        const isPlaying = musicToggle.getAttribute('data-playing') !== 'false';
+        
+        if (isPlaying) {
+            // Music is playing, so pause it
+            pauseAllMusic();
+            musicToggle.innerHTML = '🔇';
+            musicToggle.setAttribute('data-playing', 'false');
+            localStorage.setItem('musicEnabled', 'false');
+        } else {
+            // Music is paused, so play it
+            musicToggle.innerHTML = '🎻';
+            musicToggle.setAttribute('data-playing', 'true');
+            localStorage.setItem('musicEnabled', 'true');
+            playBackgroundMusic(true);
+        }
+    }
+
+    function pauseBackgroundMusic() {
+        pauseAllMusic();
+        debug("Background music paused");
+    }
+
+    function pauseAllMusic() {
+        // Pause the main audio element
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        if (backgroundMusic && !backgroundMusic.paused) {
+            backgroundMusic.pause();
+        }
+        
+        // Pause the backup audio element
+        const backupMusic = document.getElementById('backupMusic');
+        if (backupMusic && !backupMusic.paused) {
+            backupMusic.pause();
+        }
+        
+        // Pause the direct audio if it exists
+        if (window.directAudio && !window.directAudio.paused) {
+            window.directAudio.pause();
+        }
+    }
+
+    function resumeBackgroundMusic() {
+        const musicToggle = document.getElementById('musicToggle');
+        const musicEnabled = musicToggle ? (musicToggle.getAttribute('data-playing') !== 'false') : true;
+        
+        if (!musicEnabled) {
+            debug("Music remains paused due to user preference");
+            return;
+        }
+        
+        // Try to resume any active audio element
+        let resumed = false;
+        
+        // Try main audio first
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        if (backgroundMusic && backgroundMusic.paused && !resumed) {
+            try {
+                const playPromise = backgroundMusic.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        debug("Main audio resumed successfully");
+                        resumed = true;
+                    }).catch(err => debug(`Resume main audio error: ${err.message}`));
+                }
+            } catch (e) {
+                debug(`Error resuming main audio: ${e.message}`);
+            }
+        }
+        
+        // Try backup audio next
+        const backupMusic = document.getElementById('backupMusic');
+        if (backupMusic && backupMusic.paused && !resumed) {
+            try {
+                const playPromise = backupMusic.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        debug("Backup audio resumed successfully");
+                        resumed = true;
+                    }).catch(err => debug(`Resume backup audio error: ${err.message}`));
+                }
+            } catch (e) {
+                debug(`Error resuming backup audio: ${e.message}`);
+            }
+        }
+        
+        // Try direct audio last
+        if (window.directAudio && window.directAudio.paused && !resumed) {
+            try {
+                const playPromise = window.directAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        debug("Direct audio resumed successfully");
+                        resumed = true;
+                    }).catch(err => debug(`Resume direct audio error: ${err.message}`));
+                }
+            } catch (e) {
+                debug(`Error resuming direct audio: ${e.message}`);
+            }
+        }
+        
+        // If nothing resumed, try playing from the beginning
+        if (!resumed) {
+            debug("No audio could be resumed, trying to play from beginning");
+            playBackgroundMusic();
+        }
+    }
+
+    function stopBackgroundMusic() {
+        pauseAllMusic();
+        
+        // Reset all audio positions
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        if (backgroundMusic) {
+            backgroundMusic.currentTime = 0;
+        }
+        
+        const backupMusic = document.getElementById('backupMusic');
+        if (backupMusic) {
+            backupMusic.currentTime = 0;
+        }
+        
+        if (window.directAudio) {
+            window.directAudio.currentTime = 0;
+        }
+        
+        debug("Background music stopped");
+    }
+    
+    debug("Game initialization complete");
+    </script>
+</body>
+</html>
